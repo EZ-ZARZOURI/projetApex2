@@ -1,0 +1,39 @@
+stages:
+  - build
+
+
+variables:
+  DOCKER_DRIVER: overlay2
+  SPRING_IMAGE: spring_app
+  REACT_IMAGE: react_app
+  REGISTRY: gitlab-depinfo-2024.univ-brest.fr
+  PROJECT_PATH: dosi/csa/eq8
+  CI_REGISTRY_IMAGE: $REGISTRY/$PROJECT_PATH
+
+services:
+  - docker:dind
+
+before_script:
+  - echo "Docker info:"
+  - docker info
+  - echo "Logging into Docker registry..."
+  - echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin $REGISTRY
+
+build:
+  stage: build
+  script:
+    - echo "Building backend and frontend Docker images..."
+    - docker build -t $CI_REGISTRY_IMAGE/$SPRING_IMAGE:latest ./backend
+    - docker build -t $CI_REGISTRY_IMAGE/$REACT_IMAGE:latest ./frontend
+    - echo "Pushing Docker images to registry..."
+    - docker push $CI_REGISTRY_IMAGE/$SPRING_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE/$REACT_IMAGE:latest
+  tags:
+    - csa
+    
+  artifacts:
+    paths:
+      - backend/target/*.jar
+      - frontend/build/
+    expire_in: 1 hour
+
